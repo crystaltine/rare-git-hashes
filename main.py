@@ -3,47 +3,6 @@ import subprocess
 
 # utils n stuff
 
-def get_commit_info(_hash: str) -> dict:
-	"""
-	Returns dict({
-		'author': str,
-		'date': str,
-		'message': str,
-	})
-	"""
-	info = {}
-	try:
-		# git show -s --pretty=%an <commit-hash>
-		get_author_cmd = ['git', 'show', '-s', '--pretty=%an', _hash]
-
-		# git show --no-patch --format=%ci <commit-hash>
-		get_date_cmd = ['git', 'show', '--no-patch', '--format=%ci', _hash]
-
-		# git show --format=%B -s <commit-hash>
-		get_message_cmd = ['git', 'show', '--format=%B', '-s', _hash]
-	
-		info['author'] = subprocess.check_output(
-			get_author_cmd,
-			stderr=subprocess.DEVNULL,
-			shell=True
-		).decode('utf-8').strip()
-		info['date'] = subprocess.check_output(
-			get_date_cmd,
-			stderr=subprocess.DEVNULL,
-			shell=True
-		).decode('utf-8').strip()
-		info['message'] = subprocess.check_output(			
-			get_message_cmd,
-			stderr=subprocess.DEVNULL,
-			shell=True
-		).decode('utf-8').strip()
-
-		return info
-
-	except subprocess.CalledProcessError as e:
-		print(f"\x1b[31merror: {e}\x1b[0m")
-		exit(1)
-
 def ellipsisize_text(text: str, max_len: int = 50) -> str:
 	""" returns text truncated to max_len with ellipsis (...) if it exceeds `max_len` """
 	if len(text) > max_len:
@@ -57,8 +16,6 @@ PROBS = [1, 0.9999999931577225, 0.9999998289430587, 0.9999979076314924, 0.999983
 DEFAULT_TOP_K = 10
 AUTHOR_EVERYONE = "<everyone>"
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-
-#####################
 
 def main():
 	project_dir = input(f"absolute path of git repo (directory) to check \x1b[33m(leave empty to use {THIS_DIR})\x1b[0m: ").strip()
@@ -84,37 +41,45 @@ def main():
 	
 	print(f">>> fetching top \x1b[35m{top_k}\x1b[0m hashes with most letters/numbers\x1b[0m!")
 
-	all_shas = {}
+	compiled_commit_info = {}
 	os.chdir(project_dir)
 
 	shas = ...
 	try:
-		subp_cmd = ['git', 'log', '--pretty=format:%H', '--all']
+		# git log --pretty=format:'%H|%ci|%an|%B' --all
+		subp_cmd = [
+			'git', 'log', '--pretty=format:%H %ci %an %B', '--all'
+		]
 		if commit_author != AUTHOR_EVERYONE:
 			subp_cmd.insert(2, f'--author=\"{commit_author}\"')
 
-		shas = subprocess.check_output(
+		commits = subprocess.check_output(
 			subp_cmd,
-			stderr=subprocess.DEVNULL,
+			stderr=subprocess.STDOUT,
 			shell=True
 		)
 	except subprocess.CalledProcessError as e:
 		print(f"\x1b[31merror: {e}\x1b[0m")
 		exit(1)
 
-	shas_list = shas.decode('utf-8').split('\n')
+	commits_listified = commits.decode('utf-8').split('\n')
 
-	# maybe in the future can support multiple subdirectories being repos
-	# originally thats what this was for which is why project_dir is stored here
-	all_shas.update({(hsh, project_dir) for hsh in shas_list})
+	for commit_info in commits_listified:
+		if commit_info.strip() == "": # this sometimes happens cuz git adds 2 newlines sometimes, but not always?????
+			continue
+		hsh, date, time, tz, author, msg = commit_info.split(" ", 5)
+		compiled_commit_info[hsh] = {
+			'date': f"{date} {time} {tz}",
+			'author': author.strip(),
+			'message': msg.strip()
+		}	
 
-
-	if len(all_shas) < 1 or "" in all_shas:
+	if len(compiled_commit_info) < 1 or "" in compiled_commit_info:
 		# probably means no commits found due to invalid/nonexistent author
 		print(f"\n>>> no commits found by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m!")
 		exit(0)
 
-	print(f"\n>>> total unique commits by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m: {len(all_shas)}")
+	print(f"\n>>> total unique commits by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m: {len(compiled_commit_info)}")
 
 	topk_letters = [] # will store tuples of (hash, letters)
 	topk_numbers = [] # will store tuples of (hash, numbers)
@@ -124,7 +89,7 @@ def main():
 	curr_min_letters = 0
 	curr_min_numbers = 0
 
-	for hsh in all_shas:
+	for hsh in compiled_commit_info:
 		letters_ct = sum(c.isalpha() for c in hsh)
 		numbers_ct = 40 - letters_ct
 
@@ -148,23 +113,22 @@ def main():
 	print(f"\ntop {top_k} most letters:")
 	for i in range(len(real_topk_letters)):
 		hsh, n_letters = real_topk_letters[i]
-		infos = get_commit_info(hsh)
 		prob = PROBS[n_letters]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_letters} letters ({prob*100:_.7f}%)\x1b[0m")
-		print(f"  by \x1b[33m{infos['author']}\x1b[0m on \x1b[33m{infos['date']}\x1b[0m")
-		print(f"  \"{ellipsisize_text(infos['message'], 50)}\"")
+		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
+		print(f"  \"{ellipsisize_text(compiled_commit_info[hsh]['message'], 50)}\"")
 
 	print(f"\ntop {top_k} most numbers:")
 	for i in range(len(real_topk_numbers)):
 		hsh, n_numbers = real_topk_numbers[i]
-		infos = get_commit_info(hsh)
 		prob = 1 - PROBS[40 - n_numbers]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_numbers} numbers ({prob*100:_.7f}%)\x1b[0m")
-		print(f"  by \x1b[33m{infos['author']}\x1b[0m on \x1b[33m{infos['date']}\x1b[0m")
-		print(f"  \"{ellipsisize_text(infos['message'], 50)}\"")
+		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
+		print(f"  \"{ellipsisize_text(compiled_commit_info[hsh]['message'], 50)}\"")
 
 	print(f"\n\x1b[2mprobabilities calculated for x or more letters/numbers.")
 	print(f"\x1b[2mrun 'git show --format=%B -s <commit-hash>' to check commit messages!\x1b[0m")
 
 if __name__ == "__main__":
+
 	main()

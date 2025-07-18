@@ -100,7 +100,7 @@ def main():
 
 	_i = 0
 	for hsh in compiled_commit_info:
-		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%) \x1b[2mdebug: top letters len {len(topk_letters)} (min {curr_min_letters}), top numbers len {len(topk_numbers)} (min {curr_min_numbers})", end='\r\x1b[0m')
+		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%) \x1b[2mdebug: letters lb size {len(topk_letters)} (qual {curr_min_letters}), numbers lb size {len(topk_numbers)} (qual {curr_min_numbers})", end='\r\x1b[0m')
 		_i += 1
 		letters_ct = sum(c.isalpha() for c in hsh)
 		numbers_ct = 40 - letters_ct

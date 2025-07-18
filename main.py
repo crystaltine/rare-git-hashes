@@ -43,9 +43,11 @@ def main():
 	if top_k != "":
 		try:
 			top_k = int(top_k)
+			if top_k <= 0:
+				raise ValueError()
 		except ValueError:
 			top_k = DEFAULT_TOP_K
-			print(f">>> invalid number provided, using default...")
+			print(f">>> invalid positive integer provided, using default...")
 	else:
 		top_k = DEFAULT_TOP_K
 
@@ -127,7 +129,7 @@ def main():
 		prob = PROBS[n_letters]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_letters} letters ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"\n")
+		print(f"  \"{fmt_msg}\"")
 
 	print(f"\ntop {top_k} most numbers:")
 	for i in range(len(real_topk_numbers)):
@@ -136,7 +138,7 @@ def main():
 		prob = 1 - PROBS[40 - n_numbers]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_numbers} numbers ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"\n")
+		print(f"  \"{fmt_msg}\"")
 
 	print(f"\x1b[2mprobabilities calculated for x or more letters/numbers.\x1b[0m")
 	# print(f"\x1b[2mrun 'git show --format=%B -s <commit-hash>' to check commit messages!\x1b[0m")

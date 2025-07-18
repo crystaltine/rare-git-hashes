@@ -41,7 +41,8 @@ def get_commit_info(_hash: str) -> dict:
 		return info
 
 	except subprocess.CalledProcessError as e:
-	  print(f"\x1b[31mError while getting commit info for {_hash}: {e}")
+		print(f"\x1b[31mError while getting commit info for {_hash}: {e}")
+		exit(1)
 
 # (len 42)
 # 0 letters or more -> 41 letters or more, hardcoded cuz idgaf
@@ -52,7 +53,7 @@ THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 #####################
 
-PROJECT_DIR = input(f"absolute path of git repo (directory) to check \x1b[33m(enter to use {THIS_DIR})\x1b[0m: ")
+PROJECT_DIR = input(f"absolute path of git repo (directory) to check \x1b[33m(leave empty to use {THIS_DIR})\x1b[0m: ")
 
 if PROJECT_DIR == "": # use dir of this file
 	PROJECT_DIR = THIS_DIR
@@ -61,13 +62,14 @@ elif not os.path.isdir(PROJECT_DIR):
 	exit(1)
 print(f"Checking directory: \x1b[35m{PROJECT_DIR}\x1b[0m")
 
-COMMIT_AUTHOR = input("which commit author or git username? \x1b[33m(press enter for everyone)\x1b[0m: ")
+COMMIT_AUTHOR = input("which commit author or git username? \x1b[33m(leave empty for everyone)\x1b[0m: ")
 COMMIT_AUTHOR = COMMIT_AUTHOR if COMMIT_AUTHOR != "" else AUTHOR_EVERYONE
 print(f"Checking commits by: \x1b[35m{COMMIT_AUTHOR}\x1b[0m")
 
 all_shas = {}
 os.chdir(PROJECT_DIR)
 
+shas = ...
 try:
 	subp_cmd = ['git', 'log', '--pretty=format:%H', '--all']
 	if COMMIT_AUTHOR != AUTHOR_EVERYONE:
@@ -79,7 +81,8 @@ try:
 		shell=True
 	)
 except subprocess.CalledProcessError as e:
-  print(f"\x1b[31mError: {e}")
+	print(f"\x1b[31mError: {e}\x1b[0m")
+	exit(1)
 
 shas_list = shas.decode('utf-8').split('\n')
 all_shas.update({(hsh, PROJECT_DIR) for hsh in shas_list})

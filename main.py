@@ -11,9 +11,7 @@ class TopkHandler:
 		self.heap = []
 
 	def get_minval(self) -> int:
-		if len(self.heap) == 0:
-			return 0
-		return self.heap[0][0]
+		return 0 if len(self.heap) == 0 else self.heap[0][0]
 
 	def add_thing(self, thing: tuple) -> None: # heap key should be [0]
 		if len(self.heap) < self.k:
@@ -130,20 +128,20 @@ def main():
 	print(f"\n\ntop {top_k} most letters:")
 	for i in range(len(real_topk_letters)):
 		n_letters, hsh = real_topk_letters[i]
-		fmt_msg = ellipsisize_text(get_commit_message(hsh), 50).replace('\n', ' ')
+		fmt_msg = ellipsisize_text(get_commit_message(hsh)).replace('\n', ' ')
 		prob = PROBS[n_letters]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_letters} letters ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"")
+		print(f"  message: \"{fmt_msg}\"")
 
 	print(f"\ntop {top_k} most numbers:")
 	for i in range(len(real_topk_numbers)):
 		n_numbers, hsh = real_topk_numbers[i]
-		fmt_msg = ellipsisize_text(get_commit_message(hsh), 50).replace('\n', ' ')
+		fmt_msg = ellipsisize_text(get_commit_message(hsh)).replace('\n', ' ')
 		prob = 1 - PROBS[40 - n_numbers]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_numbers} numbers ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"")
+		print(f"  message: \"{fmt_msg}\"")
 
 	print(f"\n\x1b[2m(probabilities calculated for x or more letters/numbers)\x1b[0m")
 	# print(f"\x1b[2mrun 'git show --format=%B -s <commit-hash>' to check commit messages!\x1b[0m")

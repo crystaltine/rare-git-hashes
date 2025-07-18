@@ -74,11 +74,9 @@ def main():
 
 	try:
 		# git log --pretty=format:%H %ci %an %B --all
-		subp_cmd = [
-			'git', 'log', '--pretty=format:%H %ci %an', '--all'
-		]
+		subp_cmd = ['git', 'log', '--pretty=format:%H %ci %an', '--all']
 		if commit_author != AUTHOR_EVERYONE:
-			subp_cmd.insert(2, f'--author=\"{commit_author}\"')
+			subp_cmd.insert(2, f'--author={commit_author}')
 
 		commits = subprocess.check_output(subp_cmd)
 	except subprocess.CalledProcessError as e:

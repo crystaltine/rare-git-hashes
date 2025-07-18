@@ -1,6 +1,7 @@
 # Find your rarest git hashes!
 Searches through the entire git commit history (across all branches) of a specified git repository and finds the ones with the **most letters** and the **most numbers**
-- git hashes are 40 hex digits long, so theres a `10/16` chance for each one to be a number and `6/16` for each one to be a letter
+- git hashes are 40 hex digits long, each one has a `10/16` chance to be a number and `6/16` to be a letter
 
-Running on this repository with 2 commits:
-<img width="998" height="373" alt="image" src="https://github.com/user-attachments/assets/4d1b6b43-4950-4603-8fd9-6fbf203d85a3" />
+Running on this repository:
+<img width="1271" height="891" alt="image" src="https://github.com/user-attachments/assets/2fd586e4-4f47-4ba3-9d82-98d6e9f27b42" />
+

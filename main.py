@@ -39,7 +39,7 @@ def main():
 	else:
 		top_k = DEFAULT_TOP_K
 	
-	print(f">>> fetching top \x1b[35m{top_k}\x1b[0m hashes with most letters/numbers\x1b[0m!")
+	print(f"  fetching top \x1b[35m{top_k}\x1b[0m hashes with most letters/numbers\x1b[0m!")
 
 	compiled_commit_info = {}
 	os.chdir(project_dir)
@@ -76,10 +76,10 @@ def main():
 
 	if len(compiled_commit_info) < 1 or "" in compiled_commit_info:
 		# probably means no commits found due to invalid/nonexistent author
-		print(f"\n>>> no commits found by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m!")
+		print(f"\nno commits found by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m!")
 		exit(0)
 
-	print(f"\n>>> total unique commits by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m: {len(compiled_commit_info)}")
+	print(f"\ntotal unique commits by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m: {len(compiled_commit_info)}")
 
 	topk_letters = [] # will store tuples of (hash, letters)
 	topk_numbers = [] # will store tuples of (hash, numbers)

@@ -98,7 +98,7 @@ def main():
 
 	_i = 0
 	for hsh in compiled_commit_info:
-		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%) \x1b[2mdebug: top letters len {len(topk_letters)} (min {curr_min_letters}), top numbers len {len(topk_numbers)} (min {curr_min_numbers})", end='\r\x1b[0m]')
+		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%) \x1b[2mdebug: top letters len {len(topk_letters)} (min {curr_min_letters}), top numbers len {len(topk_numbers)} (min {curr_min_numbers})", end='\r\x1b[0m')
 		_i += 1
 		letters_ct = sum(c.isalpha() for c in hsh)
 		numbers_ct = 40 - letters_ct
@@ -127,7 +127,7 @@ def main():
 		prob = PROBS[n_letters]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_letters} letters ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"")
+		print(f"  \"{fmt_msg}\"\n")
 
 	print(f"\ntop {top_k} most numbers:")
 	for i in range(len(real_topk_numbers)):
@@ -136,9 +136,9 @@ def main():
 		prob = 1 - PROBS[40 - n_numbers]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_numbers} numbers ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
-		print(f"  \"{fmt_msg}\"")
+		print(f"  \"{fmt_msg}\"\n")
 
-	print(f"\n\x1b[2mprobabilities calculated for x or more letters/numbers.\x1b[0m")
+	print(f"\x1b[2mprobabilities calculated for x or more letters/numbers.\x1b[0m")
 	# print(f"\x1b[2mrun 'git show --format=%B -s <commit-hash>' to check commit messages!\x1b[0m")
 
 if __name__ == "__main__":

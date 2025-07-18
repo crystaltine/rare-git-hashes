@@ -1,7 +1,25 @@
 import os
 import subprocess
+import heapq
 
 # utils n stuff
+
+class TopkHandler:
+	""" minheap basically, ensures length is always at most k """
+	def __init__(self, k: int):
+		self.k = k
+		self.heap = []
+
+	def get_minval(self) -> int:
+		if len(self.heap) == 0:
+			return 0
+		return self.heap[0][0]
+
+	def add_thing(self, thing: tuple) -> None: # heap key should be [0]
+		if len(self.heap) < self.k:
+			heapq.heappush(self.heap, thing)
+		else:
+			heapq.heappushpop(self.heap, thing)
 
 def get_commit_message(commit_hash: str) -> str:
 	""" returns the commit message for a given commit hash """
@@ -13,7 +31,7 @@ def get_commit_message(commit_hash: str) -> str:
 		print(f"\x1b[31merror: {e}\x1b[0m")
 		return ""
 
-def ellipsisize_text(text: str, max_len: int = 50) -> str:
+def ellipsisize_text(text: str, max_len: int = 80) -> str:
 	""" returns text truncated to max_len with ellipsis (...) if it exceeds `max_len` """
 	if len(text) > max_len:
 		return text[:max_len - 3] + '...'
@@ -56,7 +74,6 @@ def main():
 	compiled_commit_info = {}
 	os.chdir(project_dir)
 
-	shas = ...
 	try:
 		# git log --pretty=format:%H %ci %an %B --all
 		subp_cmd = [
@@ -88,43 +105,31 @@ def main():
 
 	print(f"\ntotal unique commits by \x1b[33m{commit_author}\x1b[0m in \x1b[33m{project_dir}\x1b[0m: {len(compiled_commit_info)}")
 
-	topk_letters = [] # will store tuples of (hash, letters)
-	topk_numbers = [] # will store tuples of (hash, numbers)
-
-	# current minimum "specialness" to qualify for the leaderboards
-	# lazy - we will sort and take the top k at the end
-	curr_min_letters = 0
-	curr_min_numbers = 0
+	topk_letters = TopkHandler(top_k)
+	topk_numbers = TopkHandler(top_k)
 
 	print()
 
 	_i = 0
 	for hsh in compiled_commit_info:
-		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%) \x1b[2mdebug: letters lb size {len(topk_letters)} (qual {curr_min_letters}), numbers lb size {len(topk_numbers)} (qual {curr_min_numbers})", end='\r\x1b[0m')
+		print(f"checking #{_i+1}/{len(compiled_commit_info)} ({100*_i/len(compiled_commit_info):.2f}%)", end='\r\x1b[0m')
 		_i += 1
 		letters_ct = sum(c.isalpha() for c in hsh)
 		numbers_ct = 40 - letters_ct
 
-		if letters_ct >= curr_min_letters:
-			topk_letters.append((hsh, letters_ct))
-			if len(topk_letters) >= top_k: # leaderboard getting too full raise the bar!!!!!!
-				curr_min_letters = max(topk_letters, key=lambda x: x[1])[1]
+		if letters_ct > topk_letters.get_minval():
+			topk_letters.add_thing((letters_ct, hsh))
 
-		if numbers_ct >= curr_min_numbers:
-			topk_numbers.append((hsh, numbers_ct))
-			if len(topk_numbers) >= top_k:
-				curr_min_numbers = max(topk_numbers, key=lambda x: x[1])[1]
+		if numbers_ct >= topk_numbers.get_minval():
+			topk_numbers.add_thing((numbers_ct, hsh))
 
 	# prune leaderboards to get top k
-	topk_letters.sort(key=lambda x: x[1], reverse=True)
-	real_topk_letters = topk_letters[:top_k]
-
-	topk_numbers.sort(key=lambda x: x[1], reverse=True)
-	real_topk_numbers = topk_numbers[:top_k]
+	real_topk_letters = sorted(topk_letters.heap, key=lambda x: x[0], reverse=True)
+	real_topk_numbers = sorted(topk_numbers.heap, key=lambda x: x[0], reverse=True)
 
 	print(f"\n\ntop {top_k} most letters:")
 	for i in range(len(real_topk_letters)):
-		hsh, n_letters = real_topk_letters[i]
+		n_letters, hsh = real_topk_letters[i]
 		fmt_msg = ellipsisize_text(get_commit_message(hsh), 50).replace('\n', ' ')
 		prob = PROBS[n_letters]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_letters} letters ({prob*100:_.7f}%)\x1b[0m")
@@ -133,14 +138,14 @@ def main():
 
 	print(f"\ntop {top_k} most numbers:")
 	for i in range(len(real_topk_numbers)):
-		hsh, n_numbers = real_topk_numbers[i]
+		n_numbers, hsh = real_topk_numbers[i]
 		fmt_msg = ellipsisize_text(get_commit_message(hsh), 50).replace('\n', ' ')
 		prob = 1 - PROBS[40 - n_numbers]
 		print(f"#{i+1}: \x1b[34m{hsh}\x1b[0m - {n_numbers} numbers ({prob*100:_.7f}%)\x1b[0m")
 		print(f"  by \x1b[33m{compiled_commit_info[hsh]['author']}\x1b[0m on \x1b[33m{compiled_commit_info[hsh]['date']}\x1b[0m")
 		print(f"  \"{fmt_msg}\"")
 
-	print(f"\x1b[2mprobabilities calculated for x or more letters/numbers.\x1b[0m")
+	print(f"\n\x1b[2m(probabilities calculated for x or more letters/numbers)\x1b[0m")
 	# print(f"\x1b[2mrun 'git show --format=%B -s <commit-hash>' to check commit messages!\x1b[0m")
 
 if __name__ == "__main__":

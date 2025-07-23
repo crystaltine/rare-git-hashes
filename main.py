@@ -10,6 +10,9 @@ class TopkHandler:
 		self.k = k
 		self.heap = []
 
+	def at_capacity(self) -> bool:
+		return len(self.heap) >= self.k
+
 	def get_minval(self) -> int:
 		return 0 if len(self.heap) == 0 else self.heap[0][0]
 
@@ -113,10 +116,10 @@ def main():
 		letters_ct = sum(c.isalpha() for c in hsh)
 		numbers_ct = 40 - letters_ct
 
-		if letters_ct > topk_letters.get_minval():
+		if letters_ct >= topk_letters.get_minval() or not topk_letters.at_capacity():
 			topk_letters.add_thing((letters_ct, hsh))
 
-		if numbers_ct >= topk_numbers.get_minval():
+		if numbers_ct >= topk_numbers.get_minval() or not topk_numbers.at_capacity():
 			topk_numbers.add_thing((numbers_ct, hsh))
 
 	# prune leaderboards to get top k

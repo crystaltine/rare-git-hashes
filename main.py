@@ -13,6 +13,7 @@ HEAPQ_HAS_MAXHEAP = hasattr(heapq, "heapify_max") and hasattr(heapq, "heappop_ma
 PROBS = [1, 0.9999999931577225, 0.9999998289430587, 0.9999979076314924, 0.9999833056635884, 0.999902264741721, 0.9995521679592538, 0.9983268292206189, 0.9947558420394541, 0.9859176487660712, 0.9670628364495212, 0.931992885540738, 0.8746056931445474, 0.7913942641700711, 0.6838594944184401, 0.5594264037058385, 0.4300159893647329, 0.3086937259199464, 0.20592663217848023, 0.12713852697668945, 0.07240152757334008, 0.037917217949229975, 0.018211898164024208, 0.008000959729872126, 0.0032062582042702795, 0.0011685100558894946, 0.00038601476691127326, 0.00011515101303419666, 3.088228960577282e-05, 7.407430936426176e-06, 1.5791901633470091e-06, 2.9697719326959257e-07, 4.880694099654422e-08, 6.928210925467301e-09, 8.367592787652037e-10, 8.428584005494473e-11, 6.888572073318082e-12, 4.3879974151586167e-13, 2.0436130804366296e-14, 6.18907139084941e-16, 9.14641092243755e-18, 0]
 
 __verbose = False
+__tempdir = None
 
 # --- utils ---
 
@@ -34,7 +35,7 @@ def get_commit_message(commit_hash: str) -> str:
 	""" returns the commit message for a given commit hash """
 	try:
 		subp_cmd = ['git', 'log', '-n', '1', '--pretty=%s', commit_hash]
-		message = subprocess.check_output(subp_cmd).decode('utf-8', errors="ignore").strip()
+		message = subprocess.check_output(subp_cmd, cwd=__tempdir.name).decode('utf-8', errors="ignore").strip()
 		return message
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to get commit message for {commit_hash}: {e}")
@@ -47,14 +48,12 @@ def ellipsisize_text(text: str, max_len: int = 80) -> str:
 	return text
 
 def commits_from_local(project_dir: str, author: str | None) -> dict:
-	os.chdir(project_dir)
-
 	try:
 		_log("info", "logging commits...")
 		subp_cmd = ['git', 'log', '--pretty=format:%H %ci %an']
 		if author is not None:
 			subp_cmd.insert(2, f'--author={author}')
-		commits = subprocess.check_output(subp_cmd)
+		commits = subprocess.check_output(subp_cmd, cwd=__tempdir.name)
 
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to log commits: {e}")
@@ -76,20 +75,21 @@ def commits_from_local(project_dir: str, author: str | None) -> dict:
 def commits_from_remote(url: str, author: str | None) -> dict:
 	""" clone the repo at `url` into an (automatically cleaned up) temp dir """
 	_log("info", f"temporarily cloning remote repo {url}...")
-	global tempdir
-	tempdir = tempfile.TemporaryDirectory()
+	global __tempdir
+	__tempdir = tempfile.TemporaryDirectory()
 
 	try:
 		subprocess.run(
-			['git', 'clone', url, tempdir.name, '--filter=blob:none', '--bare'], 
+			['git', 'clone', url, __tempdir.name, '--filter=blob:none', '--bare'], 
 			capture_output=(not __verbose),
-			check=True
+			check=True,
+			cwd=__tempdir.name
 		)
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to clone from {url}: exit code {e.returncode}")
 		raise e
 
-	return commits_from_local(tempdir.name, author)
+	return commits_from_local(__tempdir.name, author)
 
 # --- api ---
 
@@ -196,6 +196,11 @@ def get_rarest(
 			get_commit_message(hsh)
 		))
 
+	global __tempdir
+	if (__tempdir):
+		__tempdir.cleanup()
+		__tempdir = None
+
 	return returnval
 
 # --- interface: ---
@@ -249,7 +254,7 @@ def main():
 		commit = top_numbers[i]
 		fmt_msg = ellipsisize_text(commit.message).replace('\n', ' ')
 
-		print(f"#{i+1}: \x1b[34m{commit.hashstr}\x1b[0m - {40-commit.n_letters} numbers ({commit.prob_numbers*100:_.7f}%) (1 in \x1b[31m{round(1/commit.prob_numbers):,}\x1b[0m)")
+		print(f"#{i+1}: \x1b[34m{commit.hashstr}\x1b[0m - {commit.n_numbers} numbers ({commit.prob_numbers*100:_.7f}%) (1 in \x1b[31m{round(1/commit.prob_numbers):,}\x1b[0m)")
 		print(f"  by \x1b[33m{commit.author}\x1b[0m on \x1b[33m{commit.datetime}\x1b[0m")
 		print(f"  message: \"{fmt_msg}\"")
 

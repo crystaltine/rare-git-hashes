@@ -53,7 +53,7 @@ def ellipsisize_text(text: str, max_len: int = 80) -> str:
 def commits_from_local(project_dir: str, author: str | None) -> dict:
 	try:
 		_log("info", "logging commits...")
-		subp_cmd = ['git', 'log', '--pretty=format:%H %ci %an']
+		subp_cmd = ['git', 'log', '--reverse', '--pretty=format:%H %ci %an']
 		if author is not None:
 			subp_cmd.insert(2, f'--author={author}')
 		commits = subprocess.check_output(subp_cmd, cwd=__tempdir.name if __tempdir else project_dir)

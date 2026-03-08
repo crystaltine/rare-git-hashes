@@ -32,12 +32,12 @@ def _log(msgtype: str, text: str) -> None:
 		case _:
 			return print(f"{msgtype}: {text}\x1b[0m")		
 
-def get_commit_message(commit_hash: str) -> str:
+def get_commit_message(commit_hash: str, project_dir: str | None) -> str:
 	""" returns the commit message for a given commit hash """
 	try:
 		subp_cmd = ['git', 'log', '-n', '1', '--pretty=%s', commit_hash]
 		message = subprocess.check_output(
-			subp_cmd, cwd=__tempdir.name if __tempdir else None
+			subp_cmd, cwd=__tempdir.name if __tempdir else project_dir
 		).decode('utf-8', errors="ignore").strip()
 		return message
 	except subprocess.CalledProcessError as e:
@@ -173,7 +173,7 @@ def get_rarest(
 			prob_letters, prob_numbers, 
 			compiled_commit_info[hsh]['author'], 
 			compiled_commit_info[hsh]['date'], 
-			get_commit_message(hsh)
+			get_commit_message(hsh, path if not remote else None)
 		))
 	
 	# re-populate for nums finding
@@ -196,7 +196,7 @@ def get_rarest(
 			prob_letters, prob_numbers, 
 			compiled_commit_info[hsh]['author'], 
 			compiled_commit_info[hsh]['date'], 
-			get_commit_message(hsh)
+			get_commit_message(hsh, path if not remote else None)
 		))
 
 	global __tempdir

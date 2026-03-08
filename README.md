@@ -1,9 +1,14 @@
 # Find your rarest git hashes!
-Searches through the entire git commit history (across all branches) of a specified git repository and finds the ones with the **most letters** and the **most numbers**
-- git hashes are 40 hex digits long, each one has a `10/16` chance to be a number and `6/16` to be a letter
+Searches through the entire git commit history (across all branches) of a specified git repository and finds the ones with the **most letters** and the **most numbers**.
+
+Git hashes are 40 hex digits long, each one has a `10/16` chance to be a number and `6/16` to be a letter
+
+## Example
+Running `python main.py -k 3` (top 6 commits on this repository):
+<img width="809" height="506" alt="image" src="https://github.com/user-attachments/assets/dc036d42-d174-4050-b06c-bc84c77e8ef9" />
 
 ## No dependencies! Run out-of-the-box!
-- Functions in `main.py` can also be imported as APIs and fully support custom behavior, e.g. looping thru all repos in some organization/account and checking those.
+Functions in `main.py` can also be imported as APIs and fully support custom behavior, e.g. looping thru all repos in some organization/account and checking those.
 
 ## Args
 ```
@@ -17,10 +22,7 @@ options:
   -a AUTHOR, --author AUTHOR | filter by author (git username) [default: everyone]
 ```
 
-## Example
-Running `python main.py -k 3` (top 6 commits on this repository):
-<img width="809" height="506" alt="image" src="https://github.com/user-attachments/assets/dc036d42-d174-4050-b06c-bc84c77e8ef9" />
-
+## Sample Runs
 Some more sample runs on popular large repositories, as of 8 March 2026:
 
 [Linux](https://github.com/torvalds/linux): 

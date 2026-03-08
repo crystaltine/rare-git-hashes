@@ -5,6 +5,7 @@ import subprocess
 import heapq
 import argparse
 import tempfile
+import traceback
 
 # heapq got maxheap stuff in py 3.14
 HEAPQ_HAS_MAXHEAP = hasattr(heapq, "heapify_max") and hasattr(heapq, "heappop_max")
@@ -35,7 +36,9 @@ def get_commit_message(commit_hash: str) -> str:
 	""" returns the commit message for a given commit hash """
 	try:
 		subp_cmd = ['git', 'log', '-n', '1', '--pretty=%s', commit_hash]
-		message = subprocess.check_output(subp_cmd, cwd=__tempdir.name).decode('utf-8', errors="ignore").strip()
+		message = subprocess.check_output(
+			subp_cmd, cwd=__tempdir.name if __tempdir else None
+		).decode('utf-8', errors="ignore").strip()
 		return message
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to get commit message for {commit_hash}: {e}")
@@ -53,7 +56,7 @@ def commits_from_local(project_dir: str, author: str | None) -> dict:
 		subp_cmd = ['git', 'log', '--pretty=format:%H %ci %an']
 		if author is not None:
 			subp_cmd.insert(2, f'--author={author}')
-		commits = subprocess.check_output(subp_cmd, cwd=__tempdir.name)
+		commits = subprocess.check_output(subp_cmd, cwd=__tempdir.name if __tempdir else project_dir)
 
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to log commits: {e}")
@@ -177,7 +180,7 @@ def get_rarest(
 	letter_counts.extend(top_letters)
 	if not HEAPQ_HAS_MAXHEAP:
 		# positive-ify so that letter_counts is back to correct, then we can just minheap it
-		letter_counts = list(map(lambda x: -x, letter_counts))
+		letter_counts = list(map(lambda x: (-x[0], x[1]), letter_counts))
 
 	heapq.heapify(letter_counts)
 
@@ -238,6 +241,7 @@ def main():
 		check_args(args)
 		top_letters, top_numbers = get_rarest(args.path, args.remote, args.topk, args.author)
 	except:
+		_log("error", traceback.format_exc())
 		exit(1)
 
 	print(f"\ntop {args.topk} most letters:")

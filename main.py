@@ -6,6 +6,7 @@ import heapq
 import argparse
 import tempfile
 import traceback
+import atexit
 
 # heapq got maxheap stuff in py 3.14
 HEAPQ_HAS_MAXHEAP = hasattr(heapq, "heapify_max") and hasattr(heapq, "heappop_max")
@@ -14,7 +15,14 @@ HEAPQ_HAS_MAXHEAP = hasattr(heapq, "heapify_max") and hasattr(heapq, "heappop_ma
 PROBS = [1, 0.9999999931577225, 0.9999998289430587, 0.9999979076314924, 0.9999833056635884, 0.999902264741721, 0.9995521679592538, 0.9983268292206189, 0.9947558420394541, 0.9859176487660712, 0.9670628364495212, 0.931992885540738, 0.8746056931445474, 0.7913942641700711, 0.6838594944184401, 0.5594264037058385, 0.4300159893647329, 0.3086937259199464, 0.20592663217848023, 0.12713852697668945, 0.07240152757334008, 0.037917217949229975, 0.018211898164024208, 0.008000959729872126, 0.0032062582042702795, 0.0011685100558894946, 0.00038601476691127326, 0.00011515101303419666, 3.088228960577282e-05, 7.407430936426176e-06, 1.5791901633470091e-06, 2.9697719326959257e-07, 4.880694099654422e-08, 6.928210925467301e-09, 8.367592787652037e-10, 8.428584005494473e-11, 6.888572073318082e-12, 4.3879974151586167e-13, 2.0436130804366296e-14, 6.18907139084941e-16, 9.14641092243755e-18, 0]
 
 __verbose = False
-__tempdir = None
+__clone_cache = {} # map of {url : TemporaryDirectory object}
+def _cleanup_clone_cache() -> None:
+	""" clean up all cached cloned repositories """
+	global __clone_cache
+	for tempdir_obj in __clone_cache.values():
+		tempdir_obj.cleanup()
+	__clone_cache.clear()
+atexit.register(lambda: [tempdir_obj.cleanup() for tempdir_obj in __clone_cache.values()])
 
 # --- utils ---
 
@@ -37,7 +45,7 @@ def get_commit_message(commit_hash: str, project_dir: str | None) -> str:
 	try:
 		subp_cmd = ['git', 'log', '-n', '1', '--pretty=%s', commit_hash]
 		message = subprocess.check_output(
-			subp_cmd, cwd=__tempdir.name if __tempdir else project_dir
+			subp_cmd, cwd=project_dir
 		).decode('utf-8', errors="ignore").strip()
 		return message
 	except subprocess.CalledProcessError as e:
@@ -56,7 +64,7 @@ def commits_from_local(project_dir: str, author: str | None) -> dict:
 		subp_cmd = ['git', 'log', '--reverse', '--pretty=format:%H %ci %an']
 		if author is not None:
 			subp_cmd.insert(2, f'--author={author}')
-		commits = subprocess.check_output(subp_cmd, cwd=__tempdir.name if __tempdir else project_dir)
+		commits = subprocess.check_output(subp_cmd, cwd=project_dir)
 
 	except subprocess.CalledProcessError as e:
 		_log("error", f"failed to log commits: {e}")
@@ -76,23 +84,32 @@ def commits_from_local(project_dir: str, author: str | None) -> dict:
 	return compiled_commit_info
 
 def commits_from_remote(url: str, author: str | None) -> dict:
-	""" clone the repo at `url` into an (automatically cleaned up) temp dir """
-	_log("info", f"temporarily cloning remote repo {url}...")
-	global __tempdir
-	__tempdir = tempfile.TemporaryDirectory()
+	""" clone the repo at `url` into a cached temp dir (cached for the session) """
+	global __clone_cache
+	
+	if url in __clone_cache:
+		_log("info", f"using cached clone of {url}...")
+		tempdir_obj = __clone_cache[url]
+		tempdir_path = tempdir_obj.name
+	else:
+		_log("info", f"temporarily cloning remote repo {url}...")
+		tempdir_obj = tempfile.TemporaryDirectory()
+		__clone_cache[url] = tempdir_obj
+		tempdir_path = tempdir_obj.name
 
-	try:
-		subprocess.run(
-			['git', 'clone', url, __tempdir.name, '--filter=blob:none', '--bare'], 
-			capture_output=(not __verbose),
-			check=True,
-			cwd=__tempdir.name
-		)
-	except subprocess.CalledProcessError as e:
-		_log("error", f"failed to clone from {url}: exit code {e.returncode}")
-		raise e
-
-	return commits_from_local(__tempdir.name, author)
+		try:
+			subprocess.run(
+				['git', 'clone', url, tempdir_path, '--filter=blob:none', '--bare'], 
+				capture_output=(not __verbose),
+				check=True,
+				cwd=tempdir_path
+			)
+		except subprocess.CalledProcessError as e:
+			_log("error", f"failed to clone from {url}: exit code {e.returncode}")
+			del __clone_cache[url]
+			tempdir_obj.cleanup()
+			raise e
+	return commits_from_local(tempdir_path, author)
 
 # --- api ---
 
@@ -173,7 +190,7 @@ def get_rarest(
 			prob_letters, prob_numbers, 
 			compiled_commit_info[hsh]['author'], 
 			compiled_commit_info[hsh]['date'], 
-			get_commit_message(hsh, path if not remote else None)
+			get_commit_message(hsh, path if not remote else __clone_cache[path].name)
 		))
 	
 	# re-populate for nums finding
@@ -196,13 +213,8 @@ def get_rarest(
 			prob_letters, prob_numbers, 
 			compiled_commit_info[hsh]['author'], 
 			compiled_commit_info[hsh]['date'], 
-			get_commit_message(hsh, path if not remote else None)
+			get_commit_message(hsh, path if not remote else __clone_cache[path].name)
 		))
-
-	global __tempdir
-	if (__tempdir):
-		__tempdir.cleanup()
-		__tempdir = None
 
 	return returnval
 
@@ -243,6 +255,8 @@ def main():
 	except:
 		_log("error", traceback.format_exc())
 		exit(1)
+	finally:
+		_cleanup_clone_cache()
 
 	print(f"\ntop {args.topk} most letters:")
 	for i in range(len(top_letters)):

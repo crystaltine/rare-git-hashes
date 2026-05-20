@@ -13,13 +13,13 @@ Functions in `main.py` can also be imported as APIs and fully support custom beh
 ## Args
 ```
 positional arguments:
-  path                       | path to git repository, or a url (add option -r to treat as url) [default: current dir]
+  path                      | path to git repository, or a url (add option -r to treat as url) [default: current dir]
 
 options:
-  -h, --help                 | show this help message and exit
-  -r, --remote               | whether to treat <directory> as a remote repository (will clone it) [default: false]
-  -k TOPK, --topk TOPK       | number of top hashes to display (for each of letters/numbers) [default 5]
-  -a AUTHOR, --author AUTHOR | filter by author (git username) [default: everyone]
+  -h, --help                | show this help message and exit
+  -r, --remote              | whether to treat <directory> as a remote repository (will clone it) [default: false]
+  -k TOPK, --topk TOPK      | number of top hashes to display (for each of letters/numbers) [default 5]
+  -a REGEX, --author REGEX  | filter by author(s) (directly passed to `git log`, use regex for multiple authors) [default: everyone]
 ```
 
 ## Sample Runs
@@ -91,3 +91,6 @@ Some sample probabilities below:
 | 38 | 1 in 477,927 | 1 in 48,932,941,835,856 |
 | 39 | 1 in 5,846,007 | 1 in 1,615,751,276,481,490 |
 | 40 | 1 in 146,150,164 | 1 in 109,332,503,041,914,112 |
+
+## Note
+If writing a wrapper script around this, note that there is a clone cache that will prevent recloning the same url within the same session (process). Might add disabling eventually

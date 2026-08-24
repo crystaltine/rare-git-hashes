@@ -63,7 +63,7 @@ def commits_from_local(project_dir: str, author: str | None) -> dict:
 		_log("info", "logging commits...")
 		subp_cmd = ['git', 'log', '--all', '--reverse', '--pretty=format:%H %ci %an']
 		if author is not None:
-			subp_cmd.insert(2, f'--author=\"{author}\"')
+			subp_cmd.insert(2, f'--author={author}')
 		commits = subprocess.check_output(subp_cmd, cwd=project_dir)
 
 	except subprocess.CalledProcessError as e:
@@ -150,7 +150,7 @@ def get_rarest(
 
 	by_author_string = f' by \x1b[33m{author}\x1b[0m' if author else ''
 	if len(compiled_commit_info) < 1 or "" in compiled_commit_info:
-		_log("info", f"no commits found{by_author_string} in \x1b[33m{path}\x1b[0m!")
+		_log("info", f"no commits found{by_author_string} in \x1b[33m{path}\x1b[0m! (len: {len(compiled_commit_info)})")
 		return ([], [])
 
 	_log("info", f"total unique commits{by_author_string} in \x1b[33m{path}\x1b[0m: {len(compiled_commit_info)}")

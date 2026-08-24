@@ -14,9 +14,9 @@ API_KEYS = json.load(open("./apikeys.json"))
 
 CONFIGS = [
     {
-        "apiurl": "https://github.com/api/graphql", # should be graphql endpoint
+        "apiurl": "https://api.github.com/graphql", # should be graphql endpoint
         "apitoken": API_KEYS["gh"],
-        "orgname": "something",
+        "orgname": "MY_ORGANIZATION",
         "base_repo_url": "github.com"
     },
 ]
@@ -84,13 +84,13 @@ def run(
         for repo in data["nodes"]:
             _i += 1
             reponame = repo["name"]
-            repourl = f"{base_repo_url}:{orgname}/{reponame}.git"
+            repourl = f"git@{base_repo_url}:{orgname}/{reponame}.git"
             
             print(f"#{_i} - {reponame}:")
             for _raw_authorname in authors_list:
                 authorname = _raw_authorname if _raw_authorname is not None else "<everyone>"
                 try:
-                    top_letters, top_numbers = get_rarest(repourl, remote=True, topk=1, author=authorname, verbose=False)
+                    top_letters, top_numbers = get_rarest(repourl, remote=True, topk=1, author=_raw_authorname, verbose=True)
                 except Exception as e:
                     print(f"\x1b[31m  {authorname}: skipping due to exception: {e}\x1b[0m")
                     all_top_1_letters[_raw_authorname].append((reponame, None))
@@ -129,7 +129,7 @@ def run(
                     f.write(f"{authorname}:\n")
                     
                     if top_1_letter:
-                        authorstr = f" by {top_1_letter.author}" if (authorname is None and top_1_letter is not None) else ""
+                        authorstr = f" by {top_1_letter.author}" if (_raw_authorname is None and top_1_letter is not None) else ""
                         resultstr = f"  {top_1_letter.hashstr} ({top_1_letter.n_letters} let) in {top_1_letter_repo}{authorstr} (1 in {round(1/top_1_letter.prob_letters):,})"
                         print(resultstr)
                         f.write(resultstr + "\n")
@@ -139,7 +139,7 @@ def run(
                         f.write(resultstr + "\n")
 
                     if top_1_number:
-                        authorstr = f" by {top_1_number.author}" if (authorname is None and top_1_number is not None) else ""
+                        authorstr = f" by {top_1_number.author}" if (_raw_authorname is None and top_1_number is not None) else ""
                         resultstr = f"  {top_1_number.hashstr} ({top_1_number.n_numbers} num) in {top_1_number_repo}{authorstr} (1 in {round(1/top_1_number.prob_numbers):,})"
                         print(resultstr)
                         f.write(resultstr + "\n")
